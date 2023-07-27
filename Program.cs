@@ -21,7 +21,7 @@ namespace HW2
             warehouse.Delive(iPhone12, 10);
             warehouse.Delive(iPhone11, 1);
 
-            shop.ShowGoods(); //Вывод всех товаров на складе с их остатком
+            warehouse.Show(); //Вывод всех товаров на складе с их остатком
 
             Console.ReadLine();
 
@@ -37,7 +37,7 @@ namespace HW2
 
             Console.ReadLine();
 
-            shop.ShowGoods();
+            warehouse.Show();
 
             Console.ReadLine();
 
@@ -60,63 +60,65 @@ namespace HW2
 
     class Warehouse
     {
-        private List<Cell> _goods = new List<Cell>();
-
-        public IReadOnlyList<Cell> Goods => _goods;
+        private Dictionary<Good, int> _goods = new Dictionary<Good, int>();
+        public IReadOnlyDictionary<Good, int> Goods => _goods;
 
         public void Delive(Good good, int count)
         {
-            var newCell = new Cell(good, count);
-            int indexCell = _goods.FindIndex(cell => cell.Good == good); 
+            bool indexCell = _goods.ContainsKey(good);
 
-            if(indexCell == -1)
-                _goods.Add(newCell);
+            if (indexCell == false)
+                _goods.Add(good, count);
             else
-                _goods[indexCell] = _goods[indexCell].Merge(newCell);
+                _goods[good] = Merge(good, count);
+        }
+
+        public int Merge(Good newGood, int count)
+        {
+            int existCount = _goods[newGood];
+
+            return existCount + count;
         }
 
         public List<Good> TryGetGood(Good good, int count)
         {
+            StringBuilder _notFoundText = new StringBuilder($"Product or desired quantity not found. Good: {good.Name} Count: {count}.\n");
             List<Good> goods = new List<Good>();
-            int indexCell = _goods.FindIndex(cell => cell.Good == good);
+            bool indexCell = _goods.ContainsKey(good);
 
-            if(indexCell != -1 && _goods[indexCell].Count >= count)
+            if (indexCell != false && _goods[good] >= count)
             {
                 for (int i = 0; i < count; i++)
                 {
-                    goods.Add(_goods[indexCell].Good);
+                    goods.Add(good);
                 }
 
-                _goods[indexCell] = _goods[indexCell].Merge(new Cell(good, -count));
+                _goods[good] = Merge(good, -count);
 
                 return goods;
             }
             else
             {
-                Console.WriteLine($"Product or desired quantity not found. Good: {good.Name} Count: {count}.\n");
+                Console.WriteLine(_notFoundText);
             }
 
             return null;
         }
-    }
 
-    class Cell
-    {
-        public Good Good { get; private set; }
-        public int Count { get; private set; }
-
-        public Cell(Good good, int count)
+        public void Show()
         {
-            Good = good;
-            Count = count;
-        }
+            StringBuilder goodText = new StringBuilder();
+            Console.WriteLine("\nGoods in stock:");
+            Console.WriteLine("-------------------------");
 
-        public Cell Merge(Cell newCell)
-        {
-            if (Good != newCell.Good)
-                Console.WriteLine("Error");
+            foreach (var good in _goods)
+            {
+                goodText.Append($"Good:{good.Key.Name} Count:{good.Value}");
+                Console.WriteLine(goodText);
+                goodText.Clear();
+            }
 
-            return new Cell(Good, Count + newCell.Count);
+            Console.WriteLine("-------------------------");
         }
     }
 
@@ -124,26 +126,13 @@ namespace HW2
     {
         private Warehouse _warehouse;
         private Cart _cart;
-        
+
         public string PayLink { get; private set; }
 
         public Shop(Warehouse warehouse)
         {
             _warehouse = warehouse;
             PayLink = "Payment Success!";
-        }
-
-        public void ShowGoods()
-        {
-            Console.WriteLine("\nGoods in stock:");
-            Console.WriteLine("-------------------------");
-
-            foreach(Cell cell in _warehouse.Goods)
-            {
-                Console.WriteLine($"Good:{cell.Good.Name} Count:{cell.Count}");
-            }
-
-            Console.WriteLine("-------------------------");
         }
 
         public Cart Cart()
@@ -173,25 +162,28 @@ namespace HW2
         {
             List<Good> newGoods = _shop.TryGetGoods(newGood, count);
 
-            if(newGoods != null)
+            if (newGoods != null)
             {
                 foreach (Good good in newGoods)
                 {
                     _goods.Add(good);
                 }
-            }     
+            }
         }
 
         public void ShowCart()
         {
+            StringBuilder goodText = new StringBuilder();
             Console.WriteLine("Goods in the cart:");
 
-            for(int i = 1; i <= _goods.Count; i++)
+            for (int i = 1; i <= _goods.Count; i++)
             {
-                Console.WriteLine($"Good {i}: {_goods[i - 1].Name}");
+                goodText.Append($"Good {i}: {_goods[i - 1].Name}");
+                Console.WriteLine(goodText);
+                goodText.Clear();
             }
         }
-        
+
         public Shop Order() => _shop;
     }
 }
